@@ -29,3 +29,12 @@ services:
       - MSSQL_DB=gorm
       - MSSQL_USER=gorm
       - MSSQL_PASSWORD=LoremIpsum86
+  trino:
+    image: 'trinodb/trino:latest'
+    ports:
+      - 9940:8080
+    volumes:
+      - ./trino/etc:/usr/lib/trino/etc:ro
+      - ./trino/catalog:/etc/trino/catalog
+    depends_on:
+      - postgres
