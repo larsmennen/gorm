@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
+	"gorm.io/driver/trino"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	. "gorm.io/gorm/utils/tests"
@@ -21,6 +22,7 @@ var (
 	mysqlDSN     = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
 	postgresDSN  = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 	sqlserverDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+	trinoDSN     = "http://lars@localhost:9940?catalog=postgres&schema=public"
 )
 
 func init() {
@@ -80,6 +82,15 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			dbDSN = sqlserverDSN
 		}
 		db, err = gorm.Open(sqlserver.Open(dbDSN), &gorm.Config{})
+	case "trino":
+		log.Println("testing trino...")
+		if dbDSN == "" {
+			dbDSN = trinoDSN
+		}
+		db, err = gorm.Open(trino.NewDialector(trino.Config{
+			DSN:             dbDSN,
+			CurrentDatabase: "postgres",
+		}))
 	default:
 		log.Println("testing sqlite3...")
 		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
@@ -104,7 +115,7 @@ func RunMigrations() {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 
-	DB.Migrator().DropTable("user_friends", "user_speaks")
+	DB.Migrator().DropTable("public.user_friends", "public.user_speaks")
 
 	if err = DB.Migrator().DropTable(allModels...); err != nil {
 		log.Printf("Failed to drop table, got error %v\n", err)
